@@ -1,5 +1,2 @@
 django
 djangorestframework
-drf_social_oauth2
-python-decouple
-django-cors-headers
