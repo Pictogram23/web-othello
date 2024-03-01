@@ -20,8 +20,10 @@ export default function Home() {
   const updateLocalUser = async (_users: User[]) => {
     const _localUser: User = JSON.parse(localStorage.getItem('key') as string)
     _users?.map((_user) => {
-      if (_user.email == _localUser.email) {
-        setLogined(true)
+      if (_localUser !== null) {
+        if (_user.email == _localUser.email) {
+          setLogined(true)
+        }
       }
     })
     setLocalUser(_localUser)
