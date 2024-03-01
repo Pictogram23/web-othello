@@ -13,20 +13,40 @@ type User = {
 
 const StageComponent = dynamic(() => import('./_components/stageComponent'), {ssr: false})
 export default function Home() {
-  const [ users, setUsers ] = useState<[User] | null>(null)
+  const [ users, setUsers ] = useState<User[] | null>(null)
+  const [ localUser, setLocalUser ] = useState<User | null>(null)
+  const [ logined, setLogined ] = useState<boolean>(false)
+
+  const updateLocalUser = async (_users: User[]) => {
+    const _localUser: User = JSON.parse(localStorage.getItem("key") as string);
+    _users?.map((_user) => {
+      if(_user.email == _localUser.email) {
+        setLogined(true);
+      }
+    })
+    setLocalUser(_localUser);
+  }
 
   useEffect(() => {
+    const _users: User[] = []
     const getUsers = async () => {
       const res = await GET()
-      setUsers(res);
+      res.map((data: any) => {
+        const _user: User = {email: data.email, name: data.name}
+        _users.push(_user);
+      })
+      setUsers(_users);
+      await updateLocalUser(_users)
     }
     getUsers()
-  }, [])
+  }, [users, localUser, logined])
 
   return (
     <>
       <GoogleOAuthProvider clientId="128697940905-jtbpl7g86j7kbe9otv9lrj24tit2krqr.apps.googleusercontent.com">
-        <GoogleLogin 
+        {logined
+        ? <div>{localUser?.name}でログイン済み</div>
+        : <GoogleLogin 
           onSuccess={credentialResponse => {
             const decoded = jwtDecode(credentialResponse.credential as string)
             const newUser: User = {
@@ -42,11 +62,16 @@ export default function Home() {
             if(skip == false) {
               POST(newUser);
             }
+            window.localStorage.clear()
+            window.localStorage.setItem('key', JSON.stringify(newUser));
+            if(users !== null) {
+              updateLocalUser(users)
+            }
           }}
           onError={() => {
             console.log('Login Failed');
           }}
-        />
+        />}
       </GoogleOAuthProvider>
       <StageComponent />
       <div>
@@ -60,7 +85,7 @@ export default function Home() {
   );
 }
 
-export async function GET() {
+export const GET = async () => {
   const res = await fetch('http://localhost:8000/users/');
   const users = await res.json();
   return users
@@ -76,7 +101,7 @@ const options = {
   path: '/users/',
 };
 
-export async function POST(user: User) {
+export const POST = async (user: User) => {
   const request = http.request(options, (res) => {
     console.log(`statusCode: ${res.statusCode}`)
   })
